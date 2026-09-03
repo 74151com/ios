@@ -261,7 +261,7 @@ jobs:
         env:
           BUILD_ID: ${{ inputs.build_id }}
           IOS_PATH: ${{ inputs.ios_path }}
-          SCHEME: ${{ inputs.scheme }}
+          SCHEME: Tigase
           PROJECT_TYPE: ${{ steps.detect.outputs.type }}
           USE_SIGNING: ${{ inputs.use_signing }}
           CONFIGURATION: ${{ inputs.configuration }}
@@ -404,7 +404,7 @@ jobs:
               BUILD_CMD="$BUILD_CMD PROVISIONING_PROFILE_SPECIFIER='$PROVISIONING_PROFILE_NAME'"
               BUILD_CMD="$BUILD_CMD -archivePath '$GITHUB_WORKSPACE/build/App.xcarchive' archive"
             else
-              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO OTHER_LDFLAGS=\"-weak_framework TXLiteAVSDK_Player\" build"
+              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO build"
             fi
 
             echo "Running: $BUILD_CMD"
@@ -436,7 +436,7 @@ jobs:
               BUILD_CMD="$BUILD_CMD PROVISIONING_PROFILE_SPECIFIER='$PROVISIONING_PROFILE_NAME'"
               BUILD_CMD="$BUILD_CMD -archivePath '$GITHUB_WORKSPACE/build/App.xcarchive' archive"
             else
-              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO OTHER_LDFLAGS=\"-weak_framework TXLiteAVSDK_Player\" build"
+              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO build"
             fi
 
             echo "Running: $BUILD_CMD"
