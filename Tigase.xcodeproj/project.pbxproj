@@ -827,6 +827,7 @@
 		4CD903BA2A23AD42001EADCF /* GoogleMapsCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903B72A23AD41001EADCF /* GoogleMapsCore.framework */; };
 		4CD903BB2A23AD42001EADCF /* GoogleMapsBase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903B82A23AD41001EADCF /* GoogleMapsBase.framework */; };
 		4CD903BC2A23AD42001EADCF /* GoogleMaps.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903B92A23AD41001EADCF /* GoogleMaps.framework */; };
+		4CD903C12A23B142001EADCF /* TXLiteAVSDK_Player.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */; };
 		4CEDFF462B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CEDFF452B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.m */; };
 		4CEDFF492B90E51E001FD8D9 /* TMineNoteDetialCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CEDFF482B90E51E001FD8D9 /* TMineNoteDetialCell.m */; };
 		4CEDFF4C2B90EB56001FD8D9 /* TMineNoteDetialTextCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CEDFF4B2B90EB56001FD8D9 /* TMineNoteDetialTextCell.m */; };
@@ -3302,6 +3303,7 @@
 		4CD903B72A23AD41001EADCF /* GoogleMapsCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = GoogleMapsCore.framework; sourceTree = "<group>"; };
 		4CD903B82A23AD41001EADCF /* GoogleMapsBase.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = GoogleMapsBase.framework; sourceTree = "<group>"; };
 		4CD903B92A23AD41001EADCF /* GoogleMaps.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = GoogleMaps.framework; sourceTree = "<group>"; };
+		4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TXLiteAVSDK_Player.framework; sourceTree = "<group>"; };
 		4CEDFF442B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMineNoteBookDetialListTVc.h; sourceTree = "<group>"; };
 		4CEDFF452B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMineNoteBookDetialListTVc.m; sourceTree = "<group>"; };
 		4CEDFF472B90E51E001FD8D9 /* TMineNoteDetialCell.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMineNoteDetialCell.h; sourceTree = "<group>"; };
@@ -5004,6 +5006,7 @@
 				5836F68222DF33C40035409E /* libmtasdk.a in Frameworks */,
 				18B189AC22C1326D0040980B /* Bugly.framework in Frameworks */,
 				4C6EE91D2B67E656008D5701 /* video_dec.xcframework in Frameworks */,
+				4CD903C12A23B142001EADCF /* TXLiteAVSDK_Player.framework in Frameworks */,
 				63C990241FC7FF5500B1A28B /* PushKit.framework in Frameworks */,
 				6234D5E124A8729100E7FE94 /* AlipaySDK.framework in Frameworks */,
 				6234D56B24A8434500E7FE94 /* UMShare.framework in Frameworks */,
@@ -6632,6 +6635,17 @@
 			path = FLAnimatedImage;
 			sourceTree = "<group>";
 		};
+		0FA9E89321A65CED0074416D /* ShortVideo */ = {
+			isa = PBXGroup;
+			children = (
+				4CD903BD2A23B141001EADCF /* TXLiteAVSDK_Player */,
+				0FA9E91621A65DEB0074416D /* GKMessageTool */,
+				0FA9E8C721A65DEA0074416D /* GKNavigationBarViewController */,
+				0FA9E90521A65DEB0074416D /* WMPageController */,
+				0FA9E91D21A65DEB0074416D /* YYModel */,
+				0FA9E89421A65CED0074416D /* Home */,
+				0FA9E8AF21A65CED0074416D /* Tools */,
+			);
 			path = ShortVideo;
 			sourceTree = "<group>";
 		};
@@ -7571,6 +7585,27 @@
 			path = googleMap;
 			sourceTree = "<group>";
 		};
+		4CD903BD2A23B141001EADCF /* TXLiteAVSDK_Player */ = {
+			isa = PBXGroup;
+			children = (
+				4CD903BE2A23B141001EADCF /* TXLiteAVSDK_Player */,
+			);
+			path = TXLiteAVSDK_Player;
+			sourceTree = "<group>";
+		};
+		4CD903BE2A23B141001EADCF /* TXLiteAVSDK_Player */ = {
+			isa = PBXGroup;
+			children = (
+				4CD903BF2A23B141001EADCF /* SDK */,
+			);
+			path = TXLiteAVSDK_Player;
+			sourceTree = "<group>";
+		};
+		4CD903BF2A23B141001EADCF /* SDK */ = {
+			isa = PBXGroup;
+			children = (
+				4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */,
+			);
 			path = SDK;
 			sourceTree = "<group>";
 		};
@@ -12925,6 +12960,7 @@
 					"$(PROJECT_DIR)/Tigase/3rd/googleMap",
 					"$(PROJECT_DIR)/Tigase/3rd/LiveVideo",
 					"$(PROJECT_DIR)/Tigase/meeting",
+					"$(PROJECT_DIR)/Tigase/ShortVideo/TXLiteAVSDK_Player/TXLiteAVSDK_Player/SDK",
 					"$(PROJECT_DIR)/Tigase/3rd",
 					"$(PROJECT_DIR)/Tigase/3rd/TengXunCOS",
 					"$(PROJECT_DIR)/Tigase/3rd/qqSDK",
@@ -13043,6 +13079,7 @@
 					"$(PROJECT_DIR)/Tigase/3rd/googleMap",
 					"$(PROJECT_DIR)/Tigase/3rd/LiveVideo",
 					"$(PROJECT_DIR)/Tigase/meeting",
+					"$(PROJECT_DIR)/Tigase/ShortVideo/TXLiteAVSDK_Player/TXLiteAVSDK_Player/SDK",
 					"$(PROJECT_DIR)/Tigase/3rd",
 					"$(PROJECT_DIR)/Tigase/3rd/TengXunCOS",
 					"$(PROJECT_DIR)/Tigase/3rd/qqSDK",
