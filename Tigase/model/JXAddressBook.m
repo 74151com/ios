@@ -1,0 +1,553 @@
+//
+//  JXAddressBook.m
+//  Tigase_imChatT
+//
+//  Created by p on 2017/4/14.
+//  Copyright © 2019年 YanZhenKui. All rights reserved.
+//
+
+#import "JXAddressBook.h"//
+#import <AddressBook/AddressBook.h>
+#import <Contacts/Contacts.h>
+#import "FMDatabase.h"
+#import "FMResultSet.h"
+#import "MJExtension.h"
+#import "KeychainUUID.h"
+
+extern NSString *CTSettingCopyMyPhoneNumber(void);
+
+
+NSString * const KEY_UDID_INSTEADBB = @"com.xc.udid.test";
+
+#define kPhoneNumPath [NSHomeDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"Documents/phoneNum_%@.plist",@"userId"]]
+
+@interface JXAddressBook ()
+
+@property (nonatomic, assign) ABAddressBookRef addressBookRef;
+
+@end
+
+@implementation JXAddressBook
+static JXAddressBook *shared;
+
++(JXAddressBook*)sharedInstance{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shared=[[JXAddressBook alloc]init];
+    });
+    return shared;
+}
+
+- (instancetype)init {
+    if ([super init]) {
+        _tableName = @"addressBook";
+        
+        _phoneNameArr = [NSMutableArray array];
+    }
+    
+    return self;
+}
+
+// 上传手机通讯录联系人
+- (void) uploadAddressBookContacts {
+    self.locPhoneNums = nil;
+    // 判断通讯录是否授权
+    ABAuthorizationStatus authorizationStatus = ABAddressBookGetAuthorizationStatus();
+    ABAddressBookRef addressBookRef = ABAddressBookCreate();
+    if (authorizationStatus == kABAuthorizationStatusNotDetermined) {
+        // 请求授权
+        ABAddressBookRequestAccessWithCompletion(addressBookRef, ^(bool granted, CFErrorRef error) {
+            if (granted) { // 授权成功
+                [shared upLoadAddressBook];
+                NSLog(@"授权成功！");
+            } else {  // 授权失败
+                NSLog(@"授权失败！");
+            }
+        });
+    }
+    
+    _addressBookRef = ABAddressBookCreate();
+    // 注册通讯录回调
+    ABAddressBookRegisterExternalChangeCallback(_addressBookRef, ContactsChangeCallback, nil);
+    dispatch_sync(dispatch_get_global_queue(0, 0), ^{
+        [self upLoadAddressBook];
+    });
+    
+    if (addressBookRef) {
+        CFRelease(addressBookRef);
+    }
+    
+}
+
+// 获取通讯录
+- (NSDictionary *) getMyAddressBook {
+    
+    // 1. 判读授权
+    ABAuthorizationStatus authorizationStatus = ABAddressBookGetAuthorizationStatus();
+    if (authorizationStatus != kABAuthorizationStatusAuthorized) {
+        
+        NSLog(@"没有授权");
+        return nil;
+    }
+    
+    //获取当前联系人的数组
+    //    NSMutableArray *peopleArray = [[NSMutableArray alloc]init];
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    CFArrayRef arrayRef = ABAddressBookCopyArrayOfAllPeople(_addressBookRef);
+    long count = CFArrayGetCount(arrayRef);
+    for (int i = 0; i < count; i++) {
+        //获取联系人对象的引用
+        ABRecordRef people = CFArrayGetValueAtIndex(arrayRef, i);
+        //        名
+        NSString * oldFirstName = (__bridge NSString *)ABRecordCopyValue(people, kABPersonFirstNameProperty);
+        if (!oldFirstName) {
+            oldFirstName = @"";
+        }
+        //        姓
+        NSString * oldLastName = (__bridge NSString *)ABRecordCopyValue(people, kABPersonLastNameProperty);
+        if (!oldLastName) {
+            oldLastName = @"";
+        }
+        
+        NSString *name;
+       // NSString *lang = [g_default stringForKey:kLocalLanguage];
+        
+//        if ([JXMyTools isChineseLanguage:lang]) {
+//            name = [NSString stringWithFormat:@"%@%@",oldLastName, oldFirstName];
+//        }else {
+            name = [NSString stringWithFormat:@"%@ %@",oldFirstName, oldLastName];
+//        }
+        
+        ABMultiValueRef phones = ABRecordCopyValue(people, kABPersonPhoneProperty);
+        for (NSInteger j=0; j<ABMultiValueGetCount(phones); j++) {
+            NSString *phone = (__bridge NSString *)(ABMultiValueCopyValueAtIndex(phones, j));
+            phone = [phone stringByReplacingOccurrencesOfString:@"-" withString:@""];
+            phone = [phone stringByReplacingOccurrencesOfString:@" " withString:@""];
+            phone = [phone stringByReplacingOccurrencesOfString:@"(" withString:@""];
+            phone = [phone stringByReplacingOccurrencesOfString:@")" withString:@""];
+            phone = [phone stringByReplacingOccurrencesOfString:@" " withString:@""];
+            phone = [self phoneNumberFormat:phone];
+            NSString *areaCode = @"86";
+            if (!areaCode) {
+                areaCode = @"86";
+            }
+            
+            if (phone.length > 0) {
+                if ([[phone substringToIndex:1] isEqualToString:@"+"]) {
+                    phone = [phone substringFromIndex:1];
+                }
+                
+                if (phone.length > areaCode.length) {
+                    if (![[phone substringToIndex:areaCode.length] isEqualToString:areaCode]) {
+                        phone = [areaCode stringByAppendingString:phone];
+                    }
+                    if (phone) {
+                        [dict setObject:name forKey:phone];
+                    }
+                }
+            }
+            
+        }
+        
+        CFRelease(phones);
+    }
+    
+    CFRelease(arrayRef);
+    
+    return [dict copy];
+}
+- (NSString *)phoneNumberFormat:(NSString *)phoneNum{
+    NSRegularExpression *regular = [NSRegularExpression regularExpressionWithPattern:@"[^\\d]" options:0 error:NULL];
+    phoneNum = [regular stringByReplacingMatchesInString:phoneNum options:0 range:NSMakeRange(0, [phoneNum length]) withTemplate:@""];
+    return phoneNum;
+}
+
+
+/*
+ 回调函数，实现自己的逻辑。
+ */
+void ContactsChangeCallback (ABAddressBookRef addressBook,
+                             CFDictionaryRef info,
+                             void *context){
+    [shared upLoadAddressBook];
+    
+    NSLog(@"ContactsChangeCallback");
+}
+
+- (void) upLoadAddressBook {
+    
+    _addressBookDic = [self getMyAddressBook];
+    if(_addressBookDic==nil){
+        
+        return;
+    }
+    NSArray *addressPhoneNums = self.addressBookDic.allKeys;
+    if (!addressPhoneNums || addressPhoneNums.count <= 0)
+        return;
+    
+    if ([NSArray arrayWithContentsOfFile:kPhoneNumPath].count > 0) {
+        
+        self.locPhoneNums = [NSArray arrayWithContentsOfFile:kPhoneNumPath];
+    }
+    if (!self.locPhoneNums || self.locPhoneNums.count <= 0) {
+       // [g_server WH_getUserAllAddressBook:self];
+    }
+    [_phoneNameArr removeAllObjects];
+    NSArray *addArray = [NSArray array];
+//    NSArray *deleArray = [NSArray array];
+    
+    // 谓词查询两个数组中不相同的
+    // 添加
+    NSPredicate * filterPredicate1 = [NSPredicate predicateWithFormat:@"NOT (SELF IN %@)",self.locPhoneNums];
+    addArray = [addressPhoneNums filteredArrayUsingPredicate:filterPredicate1];
+    
+    [addressPhoneNums writeToFile:kPhoneNumPath atomically:YES];
+    if (addArray.count > 0) {
+        NSMutableArray *uploadArr = [NSMutableArray array];
+        for (NSInteger i = 0; i < addArray.count; i ++) {
+            NSString *phone = addArray[i];
+            NSString *name = self.addressBookDic[phone];
+            NSDictionary *dic = @{
+                                  @"toTelephone":phone,
+                                  @"toRemarkName":name
+                                  };
+            //[uploadArr addObject:dic];
+            [_phoneNameArr addObject:dic];
+//            if (i == 0) {
+//                [uploadStr appendString:phone];
+//            }else {
+//                [uploadStr appendFormat:@",%@",phone];
+//            }
+        }
+       // NSString *uploadStr = [uploadArr mj_JSONString];
+        // 更新电话号
+      //  [g_server WH_uploadAddressBookWithUploadStr:uploadStr toView:self];
+    }
+    
+}
+//- (void)WH_didServerResult_WHSucces:(WH_JXConnection *)aDownload dict:(NSDictionary *)dict array:(NSArray *)array1{
+//    if ([aDownload.action isEqualToString:wh_act_AddressBookGetAll]) {
+//        for (NSInteger i = 0; i < array1.count; i ++) {
+//            NSDictionary *dict = array1[i];
+//            JXAddressBook *addressBook = [[JXAddressBook alloc] init];
+//            addressBook.toUserId = [NSString stringWithFormat:@"%@",dict[@"toUserId"]];
+//            addressBook.toUserName = dict[@"toUserName"];
+//            addressBook.toTelephone = dict[@"toTelephone"];
+//            addressBook.telephone = dict[@"telephone"];
+//            addressBook.registerEd = dict[@"registerEd"];
+//            addressBook.registerTime = [NSDate dateWithTimeIntervalSince1970:[dict[@"registerTime"] longLongValue]];
+//            addressBook.isRead = [NSNumber numberWithBool:1];
+//            addressBook.addressBookName = self.addressBookDic[addressBook.toTelephone];
+//            [addressBook insert];
+//        }
+//    }
+//
+//    if ([aDownload.action isEqualToString:wh_act_AddressBookUpload]) {
+//        for (NSInteger i = 0; i < array1.count; i ++) {
+//            NSDictionary *dict = array1[i];
+//            JXAddressBook *addressBook = [[JXAddressBook alloc] init];
+//            addressBook.toUserId = [NSString stringWithFormat:@"%@",dict[@"toUserId"]];
+//            addressBook.toUserName = dict[@"toUserName"];
+//            addressBook.toTelephone = dict[@"toTelephone"];
+//            addressBook.telephone = dict[@"telephone"];
+//            addressBook.registerEd = dict[@"registerEd"];
+//            addressBook.registerTime = [NSDate dateWithTimeIntervalSince1970:[dict[@"registerTime"] longLongValue]];
+//            addressBook.isRead = [NSNumber numberWithBool:0];
+//            addressBook.addressBookName = self.addressBookDic[addressBook.toTelephone];
+//            [addressBook insert];
+//
+//            int status = [dict[@"status"] intValue];
+//            if (status == 1) {
+//                WH_JXUserObject *user = [[WH_JXUserObject alloc] init];
+//                user.remarkName = dict[@"toRemarkName"];
+//                user.userId = [NSString stringWithFormat:@"%@",dict[@"toUserId"]];
+//                if (dict[@"toRemarkName"]) {
+//                    user.userNickname = dict[@"toRemarkName"];
+//                }
+//                user.timeCreate = [NSDate dateWithTimeIntervalSince1970:[dict[@"registerTime"] longLongValue]];
+//                user.status = [NSNumber numberWithInt:2];
+//                user.roomFlag = [NSNumber numberWithInt:0];
+//                [user insertFriend];
+//            }
+//        }
+//
+//        [g_notify postNotificationName:kRefreshAddressBookNotif object:nil];
+//    }
+//}
+ 
+
+-(NSString *)objArrayToJSON:(NSArray *)array {
+    
+    NSString *jsonStr = @"[";
+    for (NSInteger i = 0; i < array.count; ++i) {
+        if (i != 0) {
+            jsonStr = [jsonStr stringByAppendingString:@","];
+        }
+        jsonStr = [jsonStr stringByAppendingString:array[i]];
+    }
+    jsonStr = [jsonStr stringByAppendingString:@"]"];
+     
+    return jsonStr;
+
+    
+
+}
+-(BOOL)checkTableCreatedInDb:(FMDatabase *)db
+{
+    NSString *createStr=[NSString stringWithFormat:@"CREATE  TABLE  IF NOT EXISTS '%@' ('toUserId' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL  UNIQUE ,'toUserName' VARCHAR,'addressBookName' VARCHAR,'registerEd' INTEGER,'registerTime' DATETIME,'toTelephone' VARCHAR,'telephone' VARCHAR,'isRead' INTEGER)",_tableName];
+    
+    BOOL worked = [db executeUpdate:createStr];
+    return worked;
+}
+
+//数据库增删改查
+-(BOOL)insert {
+    
+    NSString* t =  NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString* s = [NSString stringWithFormat:@"%@/%@.db",t,@"userId"];
+    
+//    [_db close];
+//    [_db release];
+    FMDatabase* db = [[FMDatabase alloc] initWithPath:s];
+    if (![db open]) {
+//        NSLog(@"数据库打开失败");
+        return nil;
+    };
+     
+    [self checkTableCreatedInDb:db];
+    
+    NSString *insertStr=[NSString stringWithFormat:@"INSERT INTO '%@' ('toUserId','toUserName','addressBookName','registerEd','registerTime','toTelephone','telephone','isRead') VALUES (?,?,?,?,?,?,?,?)",_tableName];
+    BOOL worked = [db executeUpdate:insertStr,self.toUserId,self.toUserName,self.addressBookName,self.registerEd,self.registerTime,self.toTelephone,self.telephone,self.isRead];
+    
+    return worked;
+}
+
+-(BOOL)delete {
+    
+    
+    NSString* t =  NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString* s = [NSString stringWithFormat:@"%@/%@.db",t,@"userId"];
+    
+//    [_db close];
+//    [_db release];
+    FMDatabase* db = [[FMDatabase alloc] initWithPath:s];
+    if (![db open]) {
+//        NSLog(@"数据库打开失败");
+        return nil;
+    };
+     
+    [self checkTableCreatedInDb:db];
+    NSString *sql = [NSString stringWithFormat:@"delete from %@ where toUserId=?",_tableName];
+    BOOL worked=[db executeUpdate:sql,self.toUserId];
+    return worked;
+}
+
+-(BOOL)update {
+    
+    NSString* t =  NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString* s = [NSString stringWithFormat:@"%@/%@.db",t,@"userId"];
+    
+//    [_db close];
+//    [_db release];
+    FMDatabase* db = [[FMDatabase alloc] initWithPath:s];
+    if (![db open]) {
+//        NSLog(@"数据库打开失败");
+        return nil;
+    };
+     
+    [self checkTableCreatedInDb:db];
+    
+    NSString* sql = [NSString stringWithFormat:@"update %@ set toUserName=?,addressBookName=?,registerEd=?,registerTime=?,toTelephone=?,telephone=?,isRead=? where toUserId=?",_tableName];
+    BOOL worked = [db executeUpdate:sql,self.toUserName,self.addressBookName,self.registerEd,self.registerTime,self.toTelephone,self.telephone,self.isRead,self.toUserId];
+    return worked;
+}
+
+// 获取所有手机联系人用户
+- (NSMutableArray *)fetchAllAddressBook {
+    NSMutableArray *resultArr=[[NSMutableArray alloc]init];
+    
+    NSString* t =  NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString* s = [NSString stringWithFormat:@"%@/%@.db",t,@"userId"];
+    
+//    [_db close];
+//    [_db release];
+    FMDatabase* db = [[FMDatabase alloc] initWithPath:s];
+    if (![db open]) {
+//        NSLog(@"数据库打开失败");
+        return nil;
+    };
+     
+    [self checkTableCreatedInDb:db];
+    
+    NSString *sql = [NSString stringWithFormat:@"select * from %@", _tableName]
+    ;
+    FMResultSet *rs=[db executeQuery:sql];
+    while ([rs next]) {
+        JXAddressBook *task=[[JXAddressBook alloc] init];
+        [self addressBookFromDataset:task rs:rs];
+        [resultArr addObject:task];
+    }
+    
+    return resultArr;
+}
+
+
+
+-(void)addressBookFromDataset:(JXAddressBook*)obj rs:(FMResultSet*)rs{
+    obj.toUserId = [rs stringForColumn:@"toUserId"];
+    obj.toUserName = [rs stringForColumn:@"toUserName"];
+    obj.addressBookName = [rs stringForColumn:@"addressBookName"];
+    obj.registerEd = [rs objectForColumnName:@"registerEd"];
+    obj.registerTime = [rs dateForColumn:@"registerTime"];
+    obj.toTelephone = [rs stringForColumn:@"toTelephone"];
+    obj.telephone = [rs stringForColumn:@"telephone"];
+    obj.isRead = [rs objectForColumnName:@"isRead"];
+}
+
+// 将未读消息设置为已读
+- (BOOL)updateUnread {
+    
+    NSString *sql = [NSString stringWithFormat:@"update %@ set isRead = ? where isRead = 0", _tableName];
+    
+    
+    NSString* t =  NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString* s = [NSString stringWithFormat:@"%@/%@.db",t,@"userId"];
+    
+//    [_db close];
+//    [_db release];
+    FMDatabase* db = [[FMDatabase alloc] initWithPath:s];
+    if (![db open]) {
+//        NSLog(@"数据库打开失败");
+        return nil;
+    };
+     
+    [self checkTableCreatedInDb:db];
+    
+    BOOL worked = [db executeUpdate:sql,[NSNumber numberWithInt:1]];
+    
+    return worked;
+}
+// 查询未读消息
+-(NSMutableArray *)doFetchUnread {
+    NSMutableArray *resultArr=[[NSMutableArray alloc]init];
+    
+    NSString *sql = [NSString stringWithFormat:@"select * from %@ where isRead = 0", _tableName];
+    
+    
+    NSString* t =  NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString* s = [NSString stringWithFormat:@"%@/%@.db",t,@"userId"];
+    
+//    [_db close];
+//    [_db release];
+    FMDatabase* db = [[FMDatabase alloc] initWithPath:s];
+    if (![db open]) {
+//        NSLog(@"数据库打开失败");
+        return nil;
+    };
+     
+    [self checkTableCreatedInDb:db];
+    
+    FMResultSet *rs=[db executeQuery:sql];
+    while ([rs next]) {
+        JXAddressBook *obj=[[JXAddressBook alloc] init];
+        [self addressBookFromDataset:obj rs:rs];
+        [resultArr addObject:obj];
+    }
+
+    return resultArr;
+}
+
+-(void)dealloc{
+    // 移除通讯录回调
+    ABAddressBookUnregisterExternalChangeCallback(_addressBookRef, ContactsChangeCallback, nil);
+    //    [_location release];
+    //    [_arrayConnections release];
+    //    [_dictWaitViews release];
+    //    [myself release];
+    //
+    //    [super dealloc];
+}
+
+
+
+/**
+ 
+ */
+
+
+-(NSString *)keyUDid{
+    
+    KeychainUUID *keychain = [[KeychainUUID alloc] init];
+    id data = [keychain readUDID];
+    return data;
+}
+
+
++(NSString *)getDeviceIDInKeychain
+{
+    NSString *getUDIDInKeychain = (NSString *)[JXAddressBook load:KEY_UDID_INSTEADBB];
+    NSLog(@"从keychain中获取到的 UDID_INSTEAD %@",getUDIDInKeychain);
+    
+    if (!getUDIDInKeychain ||[getUDIDInKeychain isEqualToString:@""]||[getUDIDInKeychain isKindOfClass:[NSNull class]]) {
+        CFUUIDRef puuid = CFUUIDCreate( nil );
+        CFStringRef uuidString = CFUUIDCreateString( nil, puuid );
+        NSString * result = (NSString *)CFBridgingRelease(CFStringCreateCopy( NULL, uuidString));
+        CFRelease(puuid);
+        CFRelease(uuidString);
+        NSLog(@"\n \n \n _____重新存储 UUID _____\n \n \n  %@",result);
+        [JXAddressBook save:KEY_UDID_INSTEADBB data:result];
+        getUDIDInKeychain = (NSString *)[JXAddressBook load:KEY_UDID_INSTEADBB];
+    }
+    NSLog(@"最终 ———— UDID_INSTEAD %@",getUDIDInKeychain);
+    return getUDIDInKeychain;
+}
+
+#pragma mark - private
+
++ (NSMutableDictionary *)getKeychainQuery:(NSString *)service {
+    return [NSMutableDictionary dictionaryWithObjectsAndKeys:
+            (id)kSecClassGenericPassword,(id)kSecClass,
+            service, (id)kSecAttrService,
+            service, (id)kSecAttrAccount,
+            (id)kSecAttrAccessibleAfterFirstUnlock,(id)kSecAttrAccessible,
+            nil];
+}
+
++ (void)save:(NSString *)service data:(id)data {
+    //Get search dictionary
+    NSMutableDictionary *keychainQuery = [self getKeychainQuery:service];
+    //Delete old item before add new item
+    SecItemDelete((CFDictionaryRef)keychainQuery);
+    //Add new object to search dictionary(Attention:the data format)
+    [keychainQuery setObject:[NSKeyedArchiver archivedDataWithRootObject:data] forKey:(id)kSecValueData];
+    //Add item to keychain with the search dictionary
+    SecItemAdd((CFDictionaryRef)keychainQuery, NULL);
+}
+
++ (id)load:(NSString *)service {
+    id ret = nil;
+    NSMutableDictionary *keychainQuery = [self getKeychainQuery:service];
+    //Configure the search setting
+    //Since in our simple case we are expecting only a single attribute to be returned (the password) we can set the attribute kSecReturnData to kCFBooleanTrue
+    [keychainQuery setObject:(id)kCFBooleanTrue forKey:(id)kSecReturnData];
+    [keychainQuery setObject:(id)kSecMatchLimitOne forKey:(id)kSecMatchLimit];
+    CFDataRef keyData = NULL;
+    if (SecItemCopyMatching((CFDictionaryRef)keychainQuery, (CFTypeRef *)&keyData) == noErr) {
+        @try {
+            ret = [NSKeyedUnarchiver unarchiveObjectWithData:(__bridge NSData *)keyData];
+        } @catch (NSException *e) {
+            NSLog(@"Unarchive of %@ failed: %@", service, e);
+        } @finally {
+        }
+    }
+    if (keyData)
+        CFRelease(keyData);
+    return ret;
+}
+
++ (void)delete:(NSString *)service {
+    NSMutableDictionary *keychainQuery = [self getKeychainQuery:service];
+    SecItemDelete((CFDictionaryRef)keychainQuery);
+}
+
+@end
