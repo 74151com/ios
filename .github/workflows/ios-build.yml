@@ -462,6 +462,9 @@ jobs:
             BUILD_CMD="$BUILD_CMD SWIFT_ENABLE_COMPILE_CACHE=YES"
             BUILD_CMD="$BUILD_CMD CLANG_ENABLE_COMPILE_CACHE=YES"
 
+            # 关键修复：允许非模块化头文件引用
+            BUILD_CMD="$BUILD_CMD CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES=YES"
+
             if [ "$USE_SIGNING" = "true" ]; then
               # For signed builds, use archive. Automatic signing cannot resolve a
               # team on a runner (no Xcode account), so sign manually against the
