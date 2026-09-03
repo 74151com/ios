@@ -307,6 +307,7 @@ jobs:
             if [ -n "$WORKSPACE" ]; then
               TARGET_FLAG=-workspace
               TARGET_PATH=$WORKSPACE
+              SCHEME="Tigase"
               BASE=$(basename "$WORKSPACE" .xcworkspace)
             else
               TARGET_FLAG=-project
