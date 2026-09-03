@@ -827,7 +827,7 @@
 		4CD903BA2A23AD42001EADCF /* GoogleMapsCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903B72A23AD41001EADCF /* GoogleMapsCore.framework */; };
 		4CD903BB2A23AD42001EADCF /* GoogleMapsBase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903B82A23AD41001EADCF /* GoogleMapsBase.framework */; };
 		4CD903BC2A23AD42001EADCF /* GoogleMaps.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903B92A23AD41001EADCF /* GoogleMaps.framework */; };
-		4CD903C12A23B142001EADCF /* TXLiteAVSDK_Player.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		4CD903C12A23B142001EADCF /* TXLiteAVSDK_Player.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */; };
 		4CEDFF462B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CEDFF452B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.m */; };
 		4CEDFF492B90E51E001FD8D9 /* TMineNoteDetialCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CEDFF482B90E51E001FD8D9 /* TMineNoteDetialCell.m */; };
 		4CEDFF4C2B90EB56001FD8D9 /* TMineNoteDetialTextCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CEDFF4B2B90EB56001FD8D9 /* TMineNoteDetialTextCell.m */; };
