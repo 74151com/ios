@@ -303,7 +303,7 @@ jobs:
           fi
 
           # Determine scheme (only needed for native projects)
-            SCHEME="Tigase"
+          if [ -z "$SCHEME" ] && [ "$PROJECT_TYPE" = "native" ]; then
             if [ -n "$WORKSPACE" ]; then
               TARGET_FLAG=-workspace
               TARGET_PATH=$WORKSPACE
