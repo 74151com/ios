@@ -281,7 +281,7 @@ jobs:
         env:
           BUILD_ID: ${{ inputs.build_id }}
           IOS_PATH: ${{ inputs.ios_path }}
-          SCHEME: ${{ inputs.scheme }}
+          SCHEME: Tigase
           PROJECT_TYPE: ${{ steps.detect.outputs.type }}
           USE_SIGNING: ${{ inputs.use_signing }}
           CONFIGURATION: ${{ inputs.configuration }}
