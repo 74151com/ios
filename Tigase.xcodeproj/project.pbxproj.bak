@@ -3303,7 +3303,7 @@
 		4CD903B72A23AD41001EADCF /* GoogleMapsCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = GoogleMapsCore.framework; sourceTree = "<group>"; };
 		4CD903B82A23AD41001EADCF /* GoogleMapsBase.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = GoogleMapsBase.framework; sourceTree = "<group>"; };
 		4CD903B92A23AD41001EADCF /* GoogleMaps.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = GoogleMaps.framework; sourceTree = "<group>"; };
-		4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = ShortVideo/TXLiteAVSDK_Player/TXLiteAVSDK_Player/SDK/TXLiteAVSDK_Player.framework; sourceTree = "<group>"; };
+		4CD903C02A23B141001EADCF /* TXLiteAVSDK_Player.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = TXLiteAVSDK_Player.framework; sourceTree = "<group>"; };
 		4CEDFF442B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMineNoteBookDetialListTVc.h; sourceTree = "<group>"; };
 		4CEDFF452B90E0BF001FD8D9 /* TMineNoteBookDetialListTVc.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMineNoteBookDetialListTVc.m; sourceTree = "<group>"; };
 		4CEDFF472B90E51E001FD8D9 /* TMineNoteDetialCell.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMineNoteDetialCell.h; sourceTree = "<group>"; };
@@ -7590,7 +7590,7 @@
 			children = (
 				4CD903BE2A23B141001EADCF /* TXLiteAVSDK_Player */,
 			);
-			path = ShortVideo/TXLiteAVSDK_Player/TXLiteAVSDK_Player/SDK/TXLiteAVSDK_Player.framework;
+			path = TXLiteAVSDK_Player;
 			sourceTree = "<group>";
 		};
 		4CD903BE2A23B141001EADCF /* TXLiteAVSDK_Player */ = {
@@ -7598,7 +7598,7 @@
 			children = (
 				4CD903BF2A23B141001EADCF /* SDK */,
 			);
-			path = ShortVideo/TXLiteAVSDK_Player/TXLiteAVSDK_Player/SDK/TXLiteAVSDK_Player.framework;
+			path = TXLiteAVSDK_Player;
 			sourceTree = "<group>";
 		};
 		4CD903BF2A23B141001EADCF /* SDK */ = {
