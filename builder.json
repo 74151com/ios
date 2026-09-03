@@ -1,0 +1,15 @@
+{
+  "project": "ios",
+  "platform": "ios",
+  "github": {
+    "owner": "74151com",
+    "repo": "ios"
+  },
+  "ios": {},
+  "flutter": {
+    "watch": {}
+  },
+  "reactNative": {},
+  "kmp": {},
+  "mobai": {}
+}
