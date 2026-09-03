@@ -343,9 +343,6 @@ jobs:
             cd "$IOS_PATH"
 
             if [ "$USE_SIGNING" = "true" ]; then
-              # 'flutter build ios' never signs, so archive the Runner project it
-              # generated. The IPA step below exports build/App.xcarchive
-              # whenever signing is on.
               ARCHIVE_CMD="xcodebuild"
               if [ -n "$WORKSPACE" ]; then
                 ARCHIVE_CMD="$ARCHIVE_CMD -workspace '$WORKSPACE'"
@@ -371,9 +368,6 @@ jobs:
               eval $ARCHIVE_CMD
             fi
           elif [ "$PROJECT_TYPE" = "reactnative" ] || [ "$PROJECT_TYPE" = "expo" ] || [ "$PROJECT_TYPE" = "kmp" ]; then
-            # Use xcodebuild directly for React Native/Expo and Kotlin Multiplatform.
-            # For KMP, the Xcode build phase (or CocoaPods) invokes Gradle to
-            # compile the shared Kotlin framework, so the JDK must be on PATH.
             if [ "$PROJECT_TYPE" = "kmp" ]; then
               echo "Building Kotlin Multiplatform iOS ($CONFIGURATION)..."
               if [ -f "${GITHUB_WORKSPACE}/gradlew" ]; then
@@ -389,8 +383,6 @@ jobs:
               BUILD_CMD="$BUILD_CMD -project $PROJECT"
             fi
 
-            # Auto-detect scheme from workspace/project name (e.g., MyApp.xcworkspace -> MyApp)
-            # unless an explicit scheme was provided.
             if [ -z "$SCHEME" ]; then
               if [ -n "$WORKSPACE" ]; then
                 SCHEME=$(basename "$WORKSPACE" .xcworkspace)
@@ -407,14 +399,12 @@ jobs:
             BUILD_CMD="$BUILD_CMD -quiet"
 
             if [ "$USE_SIGNING" = "true" ]; then
-              # Must archive, not build: the IPA step below exports
-              # build/App.xcarchive whenever signing is on.
               BUILD_CMD="$BUILD_CMD DEVELOPMENT_TEAM='$DEVELOPMENT_TEAM'"
               BUILD_CMD="$BUILD_CMD CODE_SIGN_STYLE=Manual"
               BUILD_CMD="$BUILD_CMD PROVISIONING_PROFILE_SPECIFIER='$PROVISIONING_PROFILE_NAME'"
               BUILD_CMD="$BUILD_CMD -archivePath '$GITHUB_WORKSPACE/build/App.xcarchive' archive"
             else
-              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO -weak_framework TXLiteAVSDK_Player build"
+              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO OTHER_LDFLAGS=\"-weak_framework TXLiteAVSDK_Player\" build"
             fi
 
             echo "Running: $BUILD_CMD"
@@ -432,27 +422,21 @@ jobs:
             BUILD_CMD="$BUILD_CMD -destination 'generic/platform=iOS'"
             BUILD_CMD="$BUILD_CMD -derivedDataPath '$DERIVED_DATA_PATH'"
 
-            # Speed optimization flags
             BUILD_CMD="$BUILD_CMD COMPILER_INDEX_STORE_ENABLE=NO"
             BUILD_CMD="$BUILD_CMD DEBUG_INFORMATION_FORMAT=dwarf"
             BUILD_CMD="$BUILD_CMD ONLY_ACTIVE_ARCH=YES"
             BUILD_CMD="$BUILD_CMD -quiet"
 
-            # Xcode 16+ native compilation caching
             BUILD_CMD="$BUILD_CMD SWIFT_ENABLE_COMPILE_CACHE=YES"
             BUILD_CMD="$BUILD_CMD CLANG_ENABLE_COMPILE_CACHE=YES"
 
             if [ "$USE_SIGNING" = "true" ]; then
-              # For signed builds, use archive. Automatic signing cannot resolve a
-              # team on a runner (no Xcode account), so sign manually against the
-              # profile installed above.
               BUILD_CMD="$BUILD_CMD DEVELOPMENT_TEAM='$DEVELOPMENT_TEAM'"
               BUILD_CMD="$BUILD_CMD CODE_SIGN_STYLE=Manual"
               BUILD_CMD="$BUILD_CMD PROVISIONING_PROFILE_SPECIFIER='$PROVISIONING_PROFILE_NAME'"
               BUILD_CMD="$BUILD_CMD -archivePath '$GITHUB_WORKSPACE/build/App.xcarchive' archive"
             else
-              # For unsigned builds, use faster 'build' action
-              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO -weak_framework TXLiteAVSDK_Player build"
+              BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO OTHER_LDFLAGS=\"-weak_framework TXLiteAVSDK_Player\" build"
             fi
 
             echo "Running: $BUILD_CMD"
@@ -461,14 +445,8 @@ jobs:
 
           # Create IPA
           if [ "$USE_SIGNING" = "true" ]; then
-            # For signed builds, use xcodebuild -exportArchive.
-            # Everything below is relative to the repo root, which is also what
-            # the upload-artifact step ("build/*.ipa") resolves against — do not
-            # use "cd .." here, it breaks when ios_path is "." (native at root).
             cd "$GITHUB_WORKSPACE"
 
-            # The export has to use the same manual signing as the archive, and
-            # it needs the app's real bundle id to map it to the profile.
             APP_BUNDLE_ID=$(plutil -extract ApplicationProperties.CFBundleIdentifier raw -o - build/App.xcarchive/Info.plist)
             echo "Exporting $APP_BUNDLE_ID with profile '$PROVISIONING_PROFILE_NAME' (team $DEVELOPMENT_TEAM)"
 
@@ -495,19 +473,12 @@ jobs:
               -exportOptionsPlist ExportOptions.plist \
               -exportPath build/export
 
-            # Move IPA to expected location
             mv build/export/*.ipa "build/$BUILD_ID.ipa"
             echo "Created signed IPA: build/$BUILD_ID.ipa"
           else
-            # For unsigned builds, find .app and create IPA
             if [ "$PROJECT_TYPE" = "flutter" ]; then
-              # Flutter outputs to build/ios/iphoneos/
               APP_PATH=$(find "${GITHUB_WORKSPACE}/build/ios/iphoneos" -name "*.app" -type d | head -1)
             else
-              # Native and React Native/Expo use DerivedData. Ask the project
-              # which bundle this scheme produces: the first .app under
-              # Build/Products is the wrong one whenever the repo has more than
-              # one app target.
               if [ -n "$WORKSPACE" ]; then
                 TARGET_FLAG=-workspace
                 TARGET_PATH=$WORKSPACE
